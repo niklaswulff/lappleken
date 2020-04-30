@@ -1,0 +1,24 @@
+﻿@model IndexViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Välj spelomgång</title>
+</head>
+<body>
+<div>
+    @foreach (var game in Model.ActiveGames)
+    {
+        @Html.ActionLink(game.Date.ToString(), "Details", "Game", new {id = game.GameID})
+    }
+    @using (Html.BeginForm("Create", "Game", FormMethod.Post))
+    {
+        <button type="submit">Skapa nytt</button>
+    }
+</div>
+</body>
+</html>

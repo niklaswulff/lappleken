@@ -1,0 +1,26 @@
+﻿@model Lappleken.Controllers.JoinViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>title</title>
+</head>
+<body>
+<div>
+      @using (Html.BeginForm("Join", "Game"))
+      {
+          @Html.HiddenFor(m => m.GameId)
+          @Html.HiddenFor(m => m.TeamId)
+
+          @Html.TextBoxFor(m => m.PlayerName)
+
+          <button type="submit">Gå med i lag @Model.TeamId</button>
+      }
+</div>
+</body>
+</html>

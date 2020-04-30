@@ -1,0 +1,99 @@
+﻿@model Lappleken.Controllers.PlayViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Play</title>
+    <script type="text/javascript" src="/lib/jquery/dist/jquery.js"></script>
+</head>
+<body class="team-is-active player-is-active" data-game-id="@Model.GameId" data-player-id="@Model.PlayerId">
+<div class="status-bar row">
+    <div class="col-xs-4">Fas: <span id="game-phase">Ett ord</span></div>
+    <div class="col-xs-4">Spelare: @Model.PlayerName</div>
+    <div class="col-xs-4">Lag @Model.TeamName</div>
+</div>
+
+<div id="create-lapps" class="hidden">
+    <ul>
+        <li>Lars Ulrich</li>
+        <li>Madonna</li>
+        <li>Victor Orban</li>
+        <li>Astrid Lindgren</li>
+    </ul>
+    
+    <textbox id="new-lapp"></textbox>
+    <button id="add-lapp">Skapa ny</button>
+    <button id="send-lapps">Lägg lappar i skålen</button>
+</div>
+<div id="play-game" class="action-menu row">
+        <div class="col-xs-12 center">
+            <button id="take-bowl">Ta skålen</button>
+        </div>
+    </div>
+    <div id="lapp" class="lapp row" data-lapp-id="123">
+        <div class="col-xs-12 center">
+            <button id="get-first-lapp">Ta första</button>
+            <span id="lapp-content">Abraham Lincoln</span>
+        </div>
+    </div>
+    <div class="lapp-outcome">
+        <button id="skip-lapp">Lägg tillbaka</button>
+        <button id="claim-lapp">Tagen</button>
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            function handleEvent(command) {
+                var lappId = $('#lapp').data('lapp-id');
+                var gameId = $('body').data('game-id');
+
+                $.post('/game/lapp/' + gameId,
+                    {
+                        command: command,
+                        lappId: lappId
+                    }
+                ).fail(function (msg) {
+                    alert('error ' + msg);
+                }).done(function (response) {
+                    var lapp = $('#lapp');
+
+                    lapp.data('lapp-id', response.lappId);
+                    var find = lapp.find('#lapp-content');
+                    find.text(response.lappContent);
+                });
+            }
+
+            $('#get-first-lapp').click(function() {
+                var gameId = $('body').data('game-id');
+                $.get('/game/lapp/' + gameId)
+                    .fail(function (msg) {
+                        alert('error ' + msg);
+                    }).done(function (response) {
+                        var lapp = $('#lapp');
+
+                        lapp.data('lapp-id', response.lappId);
+                        lapp.find('#lapp-content').innerText = response.lappContent;
+                    });
+
+            });
+
+            $('#take-bowl').click(function () {
+            });
+
+
+            $('#skip-lapp').click(function () {
+                handleEvent('skip');
+            });
+
+            $('#claim-lapp').click(function () {
+                handleEvent('claim');
+            });
+        }
+        );
+    </script>
+</body>
+</html>
