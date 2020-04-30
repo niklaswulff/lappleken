@@ -43,7 +43,9 @@ namespace DataAccess.Model
         public IReadOnlyCollection<Lapp> Lapps => _lapps?.ToList();
         public bool Created { get; private set; }
 
-        public Game()
+        protected Game(){}
+
+        public Game(string name)
         {
             _teams = new List<Team>();
             _lapps = new List<Lapp>();

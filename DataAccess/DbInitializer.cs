@@ -9,7 +9,7 @@ namespace DataAccess
         {
             context.Database.EnsureCreated();
 
-            var game = new Game();
+            var game = new Game("default");
             game.AddTeam("NW");
             game.AddTeam("AB");
 

@@ -70,7 +70,7 @@ namespace Lappleken.Controllers
             try
             {
                 // TODO: Add insert logic here
-                var game = new Game();
+                var game = new Game("");
                 _lappContext.Games.Add(game);
 
                 _lappContext.SaveChanges();
@@ -127,7 +127,11 @@ namespace Lappleken.Controllers
         public ActionResult Lapp(int id)
         {
             // Hämta random återstående lapp
-            return new JsonResult(new {lappId = 12, lappContent = "Marilyn Monroe " + DateTime.Now.Second.ToString()});
+            var lapps = _lappContext.Games.Single(g => g.GameID == id).Lapps;
+            var count = lapps.Count;
+            var selected = lapps.Skip(new Random().Next(count)).Take(1).First();
+
+            return new JsonResult(new {lappId = selected.LappID, lappContent = selected.Text});
         }
 
         [HttpPost]
