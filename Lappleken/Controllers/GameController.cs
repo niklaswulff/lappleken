@@ -127,7 +127,7 @@ namespace Lappleken.Controllers
         public ActionResult Lapp(int id)
         {
             // Hämta random återstående lapp
-            var lapps = _lappContext.Games.Single(g => g.GameID == id).Lapps;
+            var lapps = _lappContext.Games.Include(g => g.Lapps).Single(g => g.GameID == id).Lapps;
             var count = lapps.Count;
             var selected = lapps.Skip(new Random().Next(count)).Take(1).First();
 
