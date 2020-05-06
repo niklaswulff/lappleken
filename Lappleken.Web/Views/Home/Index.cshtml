@@ -1,8 +1,19 @@
-﻿@{
+﻿@model Lappleken.Web.Models.Home.IndexViewModel
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Lappleken</h1>
+    <ul></ul>
+    @foreach (var game in Model.ActiveGames)
+    {
+        <li>
+            @Html.ActionLink($"{game.GameID.ToString()} ({game.Date:yyyy-MM-dd HH:mm})", "Details", "Game", new { id = game.GameID })
+        </li>
+    }
+    @using (Html.BeginForm("Create", "Game", FormMethod.Post))
+    {
+        <button type="submit">Skapa nytt</button>
+    }
 </div>

@@ -68,7 +68,7 @@ namespace Lappleken.Web.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
         {
-            returnUrl = returnUrl ?? Url.Content("~/");
+            returnUrl ??= Url.Content("~/");
             if (remoteError != null)
             {
                 ErrorMessage = $"Error from external provider: {remoteError}";
@@ -104,8 +104,37 @@ namespace Lappleken.Web.Areas.Identity.Pages.Account
                         Email = info.Principal.FindFirstValue(ClaimTypes.Email)
                     };
                 }
-                return Page();
+                var user = new IdentityUser { UserName = Input.Email, Email = Input.Email };
+                var identityResult = await _userManager.CreateAsync(user);
+                if (identityResult.Succeeded)
+                {
+                    identityResult = await _userManager.AddLoginAsync(user, info);
+                    if (identityResult.Succeeded)
+                    {
+                        _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+                        if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Name))
+                        {
+                            var claim = info.Principal.FindFirst(ClaimTypes.Name);
+                            var c = new Claim(ClaimTypes.GivenName, claim.Value);
+
+                            await _userManager.AddClaimAsync(user,
+                                c);
+                        }
+
+                        await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+
+                        return LocalRedirect(returnUrl);
+                    }
+                }
+                foreach (var error in identityResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
             }
+
+            LoginProvider = info.LoginProvider;
+            ReturnUrl = returnUrl;
+            return Page();
         }
 
         public async Task<IActionResult> OnPostConfirmationAsync(string returnUrl = null)

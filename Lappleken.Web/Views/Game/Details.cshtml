@@ -1,0 +1,20 @@
+﻿@model Lappleken.Web.Models.Game.GameDetailsViewModel
+
+
+<div>
+    @using (Html.BeginForm("Details", "Game"))
+    {
+        @Html.HiddenFor(m => m.GameId)
+        <h2>Lag</h2>
+        <ul>
+            @foreach (var team in Model.Teams)
+            {
+                <li>@team.Name @Html.ActionLink("Join", "Join", "Game", new {teamId = team.TeamId, id = Model.GameId})</li>
+
+            }
+        </ul>
+        @Html.TextBoxFor(m => m.TeamToAdd)
+
+        <button type="submit">Skapa nytt</button>
+    }
+</div>
