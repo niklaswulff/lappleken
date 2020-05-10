@@ -50,6 +50,10 @@ namespace Lappleken.Web.Data
         public void Configure(EntityTypeBuilder<Player> playerConfiguration)
         {
             playerConfiguration.ToTable("Player", ApplicationDbContext.DEFAULT_SCHEMA);
+            var createdLappsConfiguration = playerConfiguration.Metadata.FindNavigation(nameof(Player.CreatedLapps));
+
+            //EF access the OrderItem collection property through its backing field
+            createdLappsConfiguration.SetPropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

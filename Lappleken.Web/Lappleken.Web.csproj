@@ -13,6 +13,26 @@
     <Compile Remove="Data\Migrations\20200503220028_Base.Designer.cs" />
     <Compile Remove="Data\Migrations\20200503220405_Base.cs" />
     <Compile Remove="Data\Migrations\20200503220405_Base.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508102332_Player_connected_to_Lapp.cs" />
+    <Compile Remove="Data\Migrations\20200508102332_Player_connected_to_Lapp.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508103722_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508103722_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508104652_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508104652_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508105411_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508105411_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508105509_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508105509_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508105702_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508105702_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508110023_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508110023_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508110322_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508110322_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200508110359_LappLogg.cs" />
+    <Compile Remove="Data\Migrations\20200508110359_LappLogg.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200510195948_ddd.cs" />
+    <Compile Remove="Data\Migrations\20200510195948_ddd.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,10 +44,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="3.1.3" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Views\Game\" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
 {
     public class GamePlayViewModel
     {
-        public GamePlayViewModel(in int id, string teamName, string playerId, string playerName)
+        public GamePlayViewModel(in int id, string teamName, int playerId, string playerName)
         {
             this.GameId = id;
             this.TeamName = teamName;
@@ -12,8 +12,8 @@
 
         public int GameId { get; set; }
         public string TeamName { get; set; }
-        public string PlayerId { get; }
+        public int PlayerId { get; }
         public string PlayerName { get; }
-
+        public string Phase { get; }
     }
 }

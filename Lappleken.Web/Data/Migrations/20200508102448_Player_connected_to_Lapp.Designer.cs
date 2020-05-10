@@ -4,14 +4,16 @@ using Lappleken.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Lappleken.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200508102448_Player_connected_to_Lapp")]
+    partial class Player_connected_to_Lapp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -60,38 +62,6 @@ namespace Lappleken.Web.Data.Migrations
                     b.HasIndex("GameID");
 
                     b.ToTable("Lapp","dbo");
-                });
-
-            modelBuilder.Entity("Lappleken.Web.Data.Model.LappLogg", b =>
-                {
-                    b.Property<int>("LappLoggID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<int>("ActionByPlayerID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LappID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Phase")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("TimeStamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("LappLoggID");
-
-                    b.HasIndex("ActionByPlayerID");
-
-                    b.HasIndex("LappID");
-
-                    b.ToTable("LappLogg");
                 });
 
             modelBuilder.Entity("Lappleken.Web.Data.Model.Player", b =>
@@ -343,21 +313,6 @@ namespace Lappleken.Web.Data.Migrations
                     b.HasOne("Lappleken.Web.Data.Model.Game", null)
                         .WithMany("Lapps")
                         .HasForeignKey("GameID");
-                });
-
-            modelBuilder.Entity("Lappleken.Web.Data.Model.LappLogg", b =>
-                {
-                    b.HasOne("Lappleken.Web.Data.Model.Player", "ActionBy")
-                        .WithMany()
-                        .HasForeignKey("ActionByPlayerID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Lappleken.Web.Data.Model.Lapp", "Lapp")
-                        .WithMany("LappLoggs")
-                        .HasForeignKey("LappID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Lappleken.Web.Data.Model.Player", b =>
