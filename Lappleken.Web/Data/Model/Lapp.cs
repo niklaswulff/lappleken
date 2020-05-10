@@ -37,5 +37,10 @@ namespace Lappleken.Web.Data.Model
         {
 
         }
+
+        public void AddLogg(Game.PhaseEnum phaseId, Player playerId, string action)
+        {
+            _lappLoggs.Add(new LappLogg(playerId, action, this, (int)phaseId));
+        }
     }
 }

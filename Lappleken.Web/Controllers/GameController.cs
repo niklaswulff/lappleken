@@ -120,13 +120,15 @@ namespace Lappleken.Web.Controllers
         [HttpPost]
         public ActionResult CreateLapps(GameCreateLappsViewModel postedModel)
         {
-            var game = _dbContext.Games.Single(g => g.GameID == postedModel.GameId);
+            var game = _dbContext.Games.Include(g => g.Lapps).Single(g => g.GameID == postedModel.GameId);
             var player = _dbContext.Players.Single(p => p.PlayerID == postedModel.PlayerId);
 
             foreach (var lappText in postedModel.LappTexts)
             {
                 game.AddLapp(player, lappText);
             }
+
+            _dbContext.SaveChanges();
 
             return RedirectToAction("Play", "Game");
         }

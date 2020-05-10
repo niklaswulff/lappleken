@@ -26,9 +26,8 @@
     $(function () {
         function handleEvent(command) {
             var lappId = $('#lapp').data('lapp-id');
-            var gameId = $('body').data('game-id');
 
-            $.post('/game/lapp/' + gameId,
+            $.post('/api/Play/Lapp/',
                 {
                     command: command,
                     lappId: lappId
@@ -36,24 +35,32 @@
             ).fail(function (msg) {
                 alert('error ' + msg);
             }).done(function (response) {
-                var lapp = $('#lapp');
-
-                lapp.data('lapp-id', response.lappId);
-                var find = lapp.find('#lapp-content');
-                find.text(response.lappContent);
+                handleResponse(response);
             });
         }
 
+        function handleResponse(response) {
+            
+            if (response == null) {
+                alert('inga lappar kvar');
+                return;
+            }
+            
+            var lapp = $('#lapp');
+            
+            lapp.data('lapp-id', response.lappId);
+            lapp.find('#lapp-content').text(response.lappContent);
+
+        };
+
         $('#get-first-lapp').click(function () {
-            var gameId = $('body').data('game-id');
-            $.get('/game/lapp/' + gameId)
+
+            $.get('/api/play/')
                 .fail(function (msg) {
                     alert('error ' + msg);
                 }).done(function (response) {
-                    var lapp = $('#lapp');
 
-                    lapp.data('lapp-id', response.lappId);
-                    lapp.find('#lapp-content').innerText = response.lappContent;
+                    handleResponse(response);
                 });
 
         });
