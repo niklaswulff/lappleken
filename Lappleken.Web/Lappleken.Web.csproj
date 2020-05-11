@@ -33,6 +33,8 @@
     <Compile Remove="Data\Migrations\20200508110359_LappLogg.Designer.cs" />
     <Compile Remove="Data\Migrations\20200510195948_ddd.cs" />
     <Compile Remove="Data\Migrations\20200510195948_ddd.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200511151942_Player_started_at.cs" />
+    <Compile Remove="Data\Migrations\20200511151942_Player_started_at.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

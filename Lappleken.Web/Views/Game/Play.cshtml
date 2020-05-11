@@ -1,21 +1,26 @@
 ﻿@model Lappleken.Web.Models.Game.GamePlayViewModel
 
 <div class="status-bar row">
-    <div class="col-xs-4">Fas: <span id="game-phase">Ett ord</span></div>
+    <div class="col-xs-4">Fas: <span id="game-phase">@Model.Phase</span></div>
     <div class="col-xs-4">Spelare: @Model.PlayerName</div>
     <div class="col-xs-4">Lag @Model.TeamName</div>
 </div>
 
+<div class="game-status row">
+    <div class="col-xs-12">
+        Lag <span id="active-team"></span> spelar, <span id="active-player-id"></span> har skålen i <span id="remaining-time"></span> s till
+    </div>
+</div>
 
 <div id="play-game" class="action-menu row">
     <div class="col-xs-12 center">
         <button id="take-bowl">Ta skålen</button>
     </div>
 </div>
-<div id="lapp" class="lapp row" data-lapp-id="123">
+<div id="lapp" class="lapp row" data-lapp-id="">
     <div class="col-xs-12 center">
         <button id="get-first-lapp">Ta första</button>
-        <span id="lapp-content">Abraham Lincoln</span>
+        <span id="lapp-content">-</span>
     </div>
 </div>
 <div class="lapp-outcome">
@@ -27,10 +32,14 @@
         function handleEvent(command) {
             var lappId = $('#lapp').data('lapp-id');
 
+            if (command == 'first') {
+                lappId = 0;
+            }
+
             $.post('/api/Play/Lapp/',
                 {
-                    command: command,
-                    lappId: lappId
+                    Command: command,
+                    LappId: lappId
                 }
             ).fail(function (msg) {
                 alert('error ' + msg);
@@ -40,32 +49,31 @@
         }
 
         function handleResponse(response) {
-            
-            if (response == null) {
+
+            if ($.isEmptyObject(response)) {
                 alert('inga lappar kvar');
                 return;
             }
-            
+
             var lapp = $('#lapp');
-            
+
             lapp.data('lapp-id', response.lappId);
             lapp.find('#lapp-content').text(response.lappContent);
 
         };
 
         $('#get-first-lapp').click(function () {
-
-            $.get('/api/play/')
-                .fail(function (msg) {
-                    alert('error ' + msg);
-                }).done(function (response) {
-
-                    handleResponse(response);
-                });
-
+            handleEvent('first');
         });
 
         $('#take-bowl').click(function () {
+            $.post('/api/Play/TakeBowl/'
+            ).fail(function (msg) {
+                alert('error ' + msg);
+            }).done(function (response) {
+                $('game-phase').text('ManyWords');
+            });
+
         });
 
 
@@ -76,6 +84,25 @@
         $('#claim-lapp').click(function () {
             handleEvent('claim');
         });
+
+        function setStatus(status) {
+
+            $('#game-phase').text(status.phase);
+            $('#active-player-id').text(status.activePlayerId);
+            $('#remaining-time').text(status.remainingTimeForPlayer);
+
+        }
+
+        function updateStatus() {
+            $.get('/api/Play/GameStatus/')
+                .fail(function (msg) {
+                    alert('error ' + msg);
+                }).done(function (response) {
+                    setStatus(response);
+                });
+        }
+
+        window.setInterval(updateStatus, 1000);
     }
     );
 </script>

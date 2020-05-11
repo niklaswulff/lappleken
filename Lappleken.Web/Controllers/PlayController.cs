@@ -13,9 +13,14 @@ namespace Lappleken.Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class PlayController : ControllerBase
     {
+        public class LappCommand
+        {
+            public string Command { get; set; }
+            public int LappId { get; set; }
+        }
+
         private readonly ApplicationDbContext _dbContext;
 
         public PlayController(ApplicationDbContext _dbContext)
@@ -23,16 +28,9 @@ namespace Lappleken.Web.Controllers
             this._dbContext = _dbContext;
         }
 
-        // GET: api/Play/5
-        [HttpGet("{id}", Name = "Get")]
-        public string Get(int id)
-        {
-            return "value";
-        }
-
-        // POST: api/Play
-        [HttpPost]
-        public JsonResult Lapp([FromBody] string command,[FromBody]  int lappId)
+        [HttpGet]
+        [Route("GameStatus")]
+        public JsonResult GameStatus()
         {
             var gameCookie = Request.GetCookie();
 
@@ -41,46 +39,82 @@ namespace Lappleken.Web.Controllers
                 throw new SystemException("Fel i gameCookie");
             }
 
-            // Hämta random återstående lapp
-            var game = _dbContext.Games.Include(g => g.Lapps).Single(g => g.GameID == gameCookie.GameId);
+            var game = _dbContext.Games.Single(g => g.GameID == gameCookie.GameId);
 
-            switch (command)
+            var status = game.GetStatus();
+
+            return new JsonResult(new {status.Phase, status.ActivePlayerId, status.RemainingTimeForPlayer});
+        }
+
+        [HttpPost( Name = "Lapp")]
+        [Route("Lapp")]
+        public JsonResult Lapp([FromForm] LappCommand lappCommand)
+        {
+            var gameCookie = Request.GetCookie();
+
+            if (!gameCookie?.IsInGame == true)
+            {
+                throw new SystemException("Fel i gameCookie");
+            }
+
+            var game = _dbContext.Games.Include(g => g.Teams).ThenInclude(t => t.Players).Include(g => g.Lapps)
+                .Single(g => g.GameID == gameCookie.GameId);
+
+            switch (lappCommand.Command)
             {
                 case "claim":
-                    game.ClaimLapp(gameCookie.PlayerId, lappId);
+                    game.ClaimLapp(gameCookie.PlayerId.Value, lappCommand.LappId);
                     break;
                 case "skip":
-                    game.SkipLapp(gameCookie.PlayerId, lappId);
+                    game.SkipLapp(gameCookie.PlayerId.Value, lappCommand.LappId);
+                    break;
+                case "first":
+                    game.PlayerStarted(gameCookie.PlayerId.Value);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("command");
             }
 
-            var lapps = game.Lapps;
-
-            var count = lapps.Count;
-
-            if (count == 0)
-            {
-                return null;
-            }
-
             var selected = game.GetNextLapp();
+
+            _dbContext.SaveChanges();
+
+            if (selected == null)
+            {
+                return new JsonResult(new{});
+            }
 
             return new JsonResult(new {lappId = selected.LappID, lappContent = selected.Text});
 
-        }
-
-        // PUT: api/Play/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        } 
+        
+        // POST: api/Play
+        [HttpPost(Name = "TakeBowl")]
+        [Route("TakeBowl")]
+        public ActionResult TakeBowl()
         {
-        }
+            var gameCookie = Request.GetCookie();
 
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            if (!gameCookie?.IsInGame == true)
+            {
+                throw new SystemException("Fel i gameCookie");
+            }
+
+            var game = _dbContext.Games.Include(g => g.Teams).ThenInclude(t => t.Players).Include(g => g.Lapps)
+                .Single(g => g.GameID == gameCookie.GameId);
+
+            try
+            {
+                game.BowlToPlayer(gameCookie.PlayerId.Value);
+
+                _dbContext.SaveChanges();
+                return new OkResult();
+            }
+
+            catch (Exception exception)
+            {
+                return new NotFoundResult();
+            }
         }
     }
 }

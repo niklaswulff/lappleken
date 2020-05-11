@@ -4,14 +4,16 @@ using Lappleken.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Lappleken.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200510215128_Lapp_not_nullable_props")]
+    partial class Lapp_not_nullable_props
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -26,9 +28,6 @@ namespace Lappleken.Web.Data.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int?>("ActivePlayerId")
-                        .HasColumnType("int");
-
                     b.Property<bool>("Created")
                         .HasColumnType("bit");
 
@@ -37,9 +36,6 @@ namespace Lappleken.Web.Data.Migrations
 
                     b.Property<int>("Phase")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("PlayerStartedAt")
-                        .HasColumnType("datetime2");
 
                     b.HasKey("GameID");
 
@@ -59,7 +55,7 @@ namespace Lappleken.Web.Data.Migrations
                     b.Property<int>("CreatedByPlayerID")
                         .HasColumnType("int");
 
-                    b.Property<int>("GameID")
+                    b.Property<int?>("GameID")
                         .HasColumnType("int");
 
                     b.Property<string>("Text")
@@ -355,11 +351,9 @@ namespace Lappleken.Web.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Lappleken.Web.Data.Model.Game", "Game")
+                    b.HasOne("Lappleken.Web.Data.Model.Game", null)
                         .WithMany("Lapps")
-                        .HasForeignKey("GameID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("GameID");
                 });
 
             modelBuilder.Entity("Lappleken.Web.Data.Model.LappLogg", b =>

@@ -4,14 +4,16 @@ using Lappleken.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Lappleken.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200510213433_Lapp_ClaimedInPhase")]
+    partial class Lapp_ClaimedInPhase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -26,20 +28,17 @@ namespace Lappleken.Web.Data.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int?>("ActivePlayerId")
-                        .HasColumnType("int");
-
                     b.Property<bool>("Created")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Phase")
+                    b.Property<int>("PhaseId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("PlayerStartedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<bool>("Started")
+                        .HasColumnType("bit");
 
                     b.HasKey("GameID");
 
@@ -53,17 +52,16 @@ namespace Lappleken.Web.Data.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int?>("ClaimedInPhase")
+                    b.Property<int>("ClaimedInPhase")
                         .HasColumnType("int");
 
-                    b.Property<int>("CreatedByPlayerID")
+                    b.Property<int?>("CreatedByPlayerID")
                         .HasColumnType("int");
 
-                    b.Property<int>("GameID")
+                    b.Property<int?>("GameID")
                         .HasColumnType("int");
 
                     b.Property<string>("Text")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("LappID");
@@ -351,15 +349,11 @@ namespace Lappleken.Web.Data.Migrations
                 {
                     b.HasOne("Lappleken.Web.Data.Model.Player", "CreatedBy")
                         .WithMany("CreatedLapps")
-                        .HasForeignKey("CreatedByPlayerID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CreatedByPlayerID");
 
-                    b.HasOne("Lappleken.Web.Data.Model.Game", "Game")
+                    b.HasOne("Lappleken.Web.Data.Model.Game", null)
                         .WithMany("Lapps")
-                        .HasForeignKey("GameID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("GameID");
                 });
 
             modelBuilder.Entity("Lappleken.Web.Data.Model.LappLogg", b =>
