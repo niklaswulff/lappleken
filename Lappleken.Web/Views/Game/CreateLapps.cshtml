@@ -8,18 +8,22 @@
 
 @using (Html.BeginForm("CreateLapps", "Game"))
 {
-@Html.HiddenFor(m => m.GameId)
-@Html.HiddenFor(m => m.PlayerId)
+    @Html.HiddenFor(m => m.GameId)
+    @Html.HiddenFor(m => m.PlayerId)
 
-@for (var i = 0; i < Model.LappTexts.Length; i++)
-{
-@Html.EditorFor(c => Model.LappTexts[i])
-}
-
-<div class="row">
-    <div class="col-xs-12">
-        <button type="submit">Lägg i skålen</button>
+    <ul>
+        @for (var i = 0; i < Model.LappTexts.Length; i++)
+        {
+            <li>
+                @Html.EditorFor(c => Model.LappTexts[i])
+                @Html.ValidationMessageFor(c => Model.LappTexts[i])
+            </li>
+        }
+    </ul>
+    <div class="row">
+        <div class="col-xs-12">
+            <button type="submit">Lägg i skålen</button>
+        </div>
     </div>
-</div>
 
 }

@@ -6,6 +6,7 @@ using Lappleken.Web.Data;
 using Lappleken.Web.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,17 +23,20 @@ namespace Lappleken.Web.Controllers
         }
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly UserManager<IdentityUser> _userManager;
+        private string UserId => _userManager.GetUserId(User);
 
-        public PlayController(ApplicationDbContext _dbContext)
+        public PlayController(ApplicationDbContext dbContext, UserManager<IdentityUser> userManager)
         {
-            this._dbContext = _dbContext;
+            this._dbContext = dbContext;
+            _userManager = userManager;
         }
 
         [HttpGet]
         [Route("GameStatus")]
         public JsonResult GameStatus()
         {
-            var gameCookie = Request.GetCookie();
+            var gameCookie = Request.GetGameCookie(UserId);
 
             if (!gameCookie?.IsInGame == true)
             {
@@ -43,14 +47,16 @@ namespace Lappleken.Web.Controllers
 
             var status = game.GetStatus();
 
-            return new JsonResult(new {status.Phase, status.ActivePlayerId, status.RemainingTimeForPlayer});
+            var activePlayerName = status.ActivePlayerId.HasValue ? _dbContext.Players.Single(p => p.PlayerID == status.ActivePlayerId).Name : null;
+
+            return new JsonResult(new {status.Phase, activePlayerName, status.RemainingTimeForPlayer});
         }
 
-        [HttpPost( Name = "Lapp")]
+        [HttpPost]
         [Route("Lapp")]
         public JsonResult Lapp([FromForm] LappCommand lappCommand)
         {
-            var gameCookie = Request.GetCookie();
+            var gameCookie = Request.GetGameCookie(UserId);
 
             if (!gameCookie?.IsInGame == true)
             {
@@ -88,12 +94,11 @@ namespace Lappleken.Web.Controllers
 
         } 
         
-        // POST: api/Play
-        [HttpPost(Name = "TakeBowl")]
+        [HttpPost]
         [Route("TakeBowl")]
         public ActionResult TakeBowl()
         {
-            var gameCookie = Request.GetCookie();
+            var gameCookie = Request.GetGameCookie(UserId);
 
             if (!gameCookie?.IsInGame == true)
             {
@@ -116,5 +121,6 @@ namespace Lappleken.Web.Controllers
                 return new NotFoundResult();
             }
         }
+        
     }
 }

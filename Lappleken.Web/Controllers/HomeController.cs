@@ -1,13 +1,14 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using Lappleken.Web.Data;
+using Lappleken.Web.Data.Model;
+using Lappleken.Web.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Lappleken.Web.Models;
 using Lappleken.Web.Models.Home;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace Lappleken.Web.Controllers
 {
@@ -15,27 +16,27 @@ namespace Lappleken.Web.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly ApplicationDbContext _dbContext;
+        private readonly UserManager<IdentityUser> _userManager;
+        private string UserId => _userManager.GetUserId(User);
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext dbContext)
+        public HomeController(ILogger<HomeController> logger, ApplicationDbContext dbContext, UserManager<IdentityUser> userManager)
         {
             _logger = logger;
             _dbContext = dbContext;
+            _userManager = userManager;
         }
 
         [Authorize]
         public IActionResult Index()
         {
-            var gameId = Request.Cookies["game-id"];
-            var teamName = Request.Cookies["my-team"];
-            var playerName = Request.Cookies["player-name"];
+            var gameCookie = Request.GetGameCookie(UserId);
 
-            if (!string.IsNullOrWhiteSpace(gameId) && !string.IsNullOrWhiteSpace(teamName) &&
-                !string.IsNullOrWhiteSpace(playerName))
+            if (gameCookie?.IsInGame == true)
             {
-               // return RedirectToAction("Play", new {id = gameId});
+                return RedirectToAction("Play", "Game", new {id = gameCookie.GameId.Value});
             }
 
-            var activeGames = _dbContext.Games.Where(g => g.Created).ToList();
+            var activeGames = _dbContext.Games.Where(g => g.Phase == Game.PhaseEnum.NotStarted).ToList();
             return View(new IndexViewModel() { ActiveGames = activeGames });
         }
 

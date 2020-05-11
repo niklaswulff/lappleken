@@ -24,20 +24,22 @@ namespace Lappleken.Web.Data.Model
         public IReadOnlyCollection<Lapp> Lapps => _lapps?.ToList();
         public bool Created { get; private set; }
         public PhaseEnum Phase { get; private set; }
-        
+        public string CreatedBy { get; private set; }
+
         public DateTime? PlayerStartedAt { get; private set; }
 
         public int? ActivePlayerId { get; private set; }
 
         protected Game() { }
 
-        public Game(string name)
+        public Game(string createdByUserId)
         {
             _teams = new List<Team>();
             _lapps = new List<Lapp>();
 
-            this.Date = DateTime.Now;
-            this.Created = true;
+            Date = DateTime.Now;
+            Created = true;
+            CreatedBy = createdByUserId;
         }
 
         public GameStatus GetStatus()
@@ -58,9 +60,12 @@ namespace Lappleken.Web.Data.Model
             };
         }
 
-        public void AddTeam(string name)
+        public Team AddTeam(string name)
         {
-            this._teams.Add(new Team(name));
+            var team = new Team(name);
+            this._teams.Add(team);
+
+            return team;
         }
 
         public void AddLapp(Player player, string text)
@@ -92,13 +97,21 @@ namespace Lappleken.Web.Data.Model
 
             if (!unclaimed.Any())
             {
-                Phase++;
+                MoveToNextPhase();
+
                 return null;
             }
 
             var count = unclaimed.Count;
 
             return unclaimed.Skip(new Random().Next(count)).Take(1).First();
+        }
+
+        private void MoveToNextPhase()
+        {
+            Phase++;
+            ActivePlayerId = null;
+            PlayerStartedAt = null;
         }
 
         public void BowlToPlayer(int playerId)
@@ -113,6 +126,11 @@ namespace Lappleken.Web.Data.Model
                 throw new SystemException("Fel player är active");
             }
 
+            if (Phase == PhaseEnum.NotStarted)
+            {
+                Phase++;
+            }
+
             PlayerStartedAt = DateTime.Now;
         }
 
@@ -122,15 +140,23 @@ namespace Lappleken.Web.Data.Model
             ManyWords = 1,
             OnlyOneWord = 2,
             Charades = 3,
-            Humming = 4
+            Humming = 4,
+            Ended = 5
         }
 
         public const string CommandClaim = "claim";
         public const string CommandSkip = "skip";
         public const string CommandFirst = "first";
+
+        public void RemovePlayerFromTeam(int playerId, int teamId)
+        {
+            var team = Teams.Single(t => t.TeamID == teamId);
+
+            team.RemovePlayer(playerId);
+        }
     }
 
-    public class GameStatus 
+    public class GameStatus
     {
         public int GameId { get; set; }
         public string Phase { get; set; }

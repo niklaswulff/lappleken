@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+// ReSharper disable UnusedAutoPropertyAccessor.Local
 
 namespace Lappleken.Web.Data.Model
 {
@@ -11,8 +12,8 @@ namespace Lappleken.Web.Data.Model
         private Team() { }
         public Team(string name)
         {
-            this._players = new List<Player>();
-            this.Name = name;
+            _players = new List<Player>();
+            Name = name;
         }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -20,17 +21,39 @@ namespace Lappleken.Web.Data.Model
         public string Name { get; set; }
         public IReadOnlyCollection<Player> Players => _players;
 
-        public Player AddPlayer(string name)
+        public Player AddPlayer(string userId, string name)
         {
-            if (this._players.Select(p => p.Name).Contains(name))
+            _players ??= new List<Player>();
+
+            var existingPlayer = _players.SingleOrDefault(p => p.UserId == userId);
+
+            if (existingPlayer != null)
             {
-                throw new ArgumentException(nameof(name));
+                existingPlayer.IsActive = true;
+                return existingPlayer;
             }
 
-            var player = new Player(name);
-            this._players.Add(player);
+            var player = new Player(userId, name) {IsActive = true};
+            _players.Add(player);
 
             return player;
+        }
+
+        public void RemovePlayer(int playerId)
+        {
+            if (_players == null)
+            {
+                return;
+            }
+
+            var existingPlayer = _players.SingleOrDefault(p => p.PlayerID == playerId);
+
+            if (existingPlayer == null)
+            {
+                return;
+            }
+
+            existingPlayer.IsActive = false;
         }
     }
 }

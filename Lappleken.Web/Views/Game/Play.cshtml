@@ -1,14 +1,23 @@
 ﻿@model Lappleken.Web.Models.Game.GamePlayViewModel
 
-<div class="status-bar row">
+<div id="status-bar" class="row">
     <div class="col-xs-4">Fas: <span id="game-phase">@Model.Phase</span></div>
     <div class="col-xs-4">Spelare: @Model.PlayerName</div>
-    <div class="col-xs-4">Lag @Model.TeamName</div>
+    <div class="col-xs-4">
+        Lag @Model.TeamName   
+        @Html.ActionLink("Lämna detta spel", "LeaveGame", "Game")
+    </div>
 </div>
 
-<div class="game-status row">
+<div id="game-status" class="row">
     <div class="col-xs-12">
-        Lag <span id="active-team"></span> spelar, <span id="active-player-id"></span> har skålen i <span id="remaining-time"></span> s till
+        Lag <span id="active-team"></span> spelar, <span id="active-player"></span> har skålen i <span id="remaining-time"></span> s till
+    </div>
+</div>
+
+<div id="game-idle" class="row">
+    <div class="col-xs-12">
+        Väntar på att spelare i lag <span id="active-team"></span> ska ta skålen
     </div>
 </div>
 
@@ -71,7 +80,7 @@
             ).fail(function (msg) {
                 alert('error ' + msg);
             }).done(function (response) {
-                $('game-phase').text('ManyWords');
+               
             });
 
         });
@@ -85,12 +94,31 @@
             handleEvent('claim');
         });
 
+        $('#leave-game').click(function () {
+            $.post('/api/Play/LeaveGame/'
+            ).fail(function (msg) {
+                alert('error ' + msg);
+            }).done(function (response) {
+                
+            });
+        });
+        
         function setStatus(status) {
 
             $('#game-phase').text(status.phase);
-            $('#active-player-id').text(status.activePlayerId);
-            $('#remaining-time').text(status.remainingTimeForPlayer);
+            $('#active-team').text("Lagnamn");
 
+            if (status.activePlayerName) {
+                $('#game-status').show();
+                $('#game-idle').hide();
+
+                $('#active-player').text(status.activePlayerName);
+                $('#remaining-time').text(status.remainingTimeForPlayer);
+            }
+            else {
+                $('#game-status').hide();
+                $('#game-idle').show();
+            }
         }
 
         function updateStatus() {
@@ -102,6 +130,7 @@
                 });
         }
 
+        updateStatus();
         window.setInterval(updateStatus, 1000);
     }
     );

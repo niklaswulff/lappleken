@@ -6,17 +6,23 @@ namespace Lappleken.Web.Extensions
 {
     public static class CookieExtensions
     {
-        public static void AddCookie(this HttpResponse response, int? gameId, int? playerID, string username,
+        public static void SetGameCookie(this HttpResponse response, string userId, int? gameId, int? playerID,
+            string username,
             int? teamId)
         {
             var gameCookie = new GameController.GameCookie(){GameId = gameId,PlayerId = playerID, PlayerName = username, TeamId = teamId};
-            response.Cookies.Append("gameCookie", JsonConvert.SerializeObject(gameCookie));
+            response.Cookies.Append("gameCookie" + userId, JsonConvert.SerializeObject(gameCookie));
 
         }
 
-        public static GameController.GameCookie GetCookie(this HttpRequest request)
+        public static void RemoveGameCookie(this HttpResponse response, string userId)
         {
-            var cookie = request.Cookies["gameCookie"];
+            response.Cookies.Delete("gameCookie" + userId);
+        }
+
+        public static GameController.GameCookie GetGameCookie(this HttpRequest request, string userId)
+        {
+            var cookie = request.Cookies["gameCookie" + userId];
 
             if (cookie == null)
             {
