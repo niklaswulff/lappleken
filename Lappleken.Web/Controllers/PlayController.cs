@@ -48,8 +48,11 @@ namespace Lappleken.Web.Controllers
             var status = game.GetStatus();
 
             var activePlayerName = status.ActivePlayerId.HasValue ? _dbContext.Players.Single(p => p.PlayerID == status.ActivePlayerId).Name : null;
+            var activeTeamName = status.ActiveTeamId.HasValue
+                ? _dbContext.Teams.Single(t => t.TeamID == status.ActiveTeamId.Value).Name
+                : null;
 
-            return new JsonResult(new {status.Phase, activePlayerName, status.RemainingTimeForPlayer});
+            return new JsonResult(new {status.Phase, activeTeamName, activePlayerName, status.ActivePlayerDone, status.RemainingTimeForPlayer});
         }
 
         [HttpPost]
@@ -81,7 +84,7 @@ namespace Lappleken.Web.Controllers
                     throw new ArgumentOutOfRangeException("command");
             }
 
-            var selected = game.GetNextLapp();
+            var selected = game.GetNextLapp(gameCookie.PlayerId.Value);
 
             _dbContext.SaveChanges();
 

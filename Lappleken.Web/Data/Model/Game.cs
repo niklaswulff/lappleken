@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Reflection.Metadata;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 
@@ -10,25 +9,43 @@ namespace Lappleken.Web.Data.Model
 {
     public class Game
     {
+        public enum PhaseEnum
+        {
+            NotStarted = 0,
+            ManyWords = 1,
+            OnlyOneWord = 2,
+            Charades = 3,
+            Humming = 4,
+            Ended = 5
+        }
+
+        public const string CommandClaim = "claim";
+        public const string CommandSkip = "skip";
+        public const string CommandFirst = "first";
+
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int GameID { get; private set; }
 
-        private List<Team> _teams;
-        private List<Lapp> _lapps;
-
         public DateTime Date { get; private set; }
-
-        public bool Started => this.Phase != PhaseEnum.NotStarted;
 
         public IReadOnlyCollection<Team> Teams => _teams?.ToList();
         public IReadOnlyCollection<Lapp> Lapps => _lapps?.ToList();
+
         public bool Created { get; private set; }
-        public PhaseEnum Phase { get; private set; }
         public string CreatedBy { get; private set; }
 
-        public DateTime? PlayerStartedAt { get; private set; }
+        public PhaseEnum Phase { get; private set; }
+        public DateTime? PlayerEndsAt { get; private set; }
 
+        public int? ActiveTeamId { get; private set; }
         public int? ActivePlayerId { get; private set; }
+        public int? ActivePlayerRemainingTime { get; private set; }
+        public bool ActivePlayerDone { get; private set; }
+
+        public bool Started => this.Phase != PhaseEnum.NotStarted;
+
+        private List<Team> _teams;
+        private List<Lapp> _lapps;
 
         protected Game() { }
 
@@ -44,19 +61,14 @@ namespace Lappleken.Web.Data.Model
 
         public GameStatus GetStatus()
         {
-            var remainingTimeForPlayer = PlayerStartedAt?.AddMinutes(1) - DateTime.Now;
-
-            if (remainingTimeForPlayer.HasValue && remainingTimeForPlayer.Value < TimeSpan.Zero)
-            {
-                remainingTimeForPlayer = TimeSpan.Zero;
-            }
-
             return new GameStatus
             {
-                GameId = this.GameID,
+                GameId = GameID,
                 Phase = Phase.ToString(),
+                ActiveTeamId = ActiveTeamId,
                 ActivePlayerId = ActivePlayerId,
-                RemainingTimeForPlayer = remainingTimeForPlayer?.Seconds,
+                ActivePlayerDone = ActivePlayerDone,
+                RemainingTimeForPlayer = RemainingSecondsForActivePlayer,
             };
         }
 
@@ -74,25 +86,55 @@ namespace Lappleken.Web.Data.Model
             {
                 throw new Exception("Game already started");
             }
+
             this._lapps.Add(new Lapp(this, player, text));
         }
 
         public void ClaimLapp(int playerId, int lappId)
         {
+            CheckIfTimeIsUp();
+
+            if (ActivePlayerId != playerId)
+            {
+                throw new SystemException("Fel spelare tar lapp");
+            }
+
             var player = _teams.SelectMany(t => t.Players).Single(p => p.PlayerID == playerId);
 
             this.Lapps.Single(l => l.LappID == lappId).AddLogg(this.Phase, player, CommandClaim);
+
+            if (ActivePlayerDone)
+            {
+                ActivePlayerId = null;
+            }
         }
 
         public void SkipLapp(int playerId, int lappId)
         {
+            CheckIfTimeIsUp();
+
+            if (ActivePlayerId != playerId)
+            {
+                throw new SystemException("Fel spelare skippar lapp");
+            }
+
             var player = _teams.SelectMany(t => t.Players).Single(p => p.PlayerID == playerId);
 
             this.Lapps.Single(l => l.LappID == lappId).AddLogg(this.Phase, player, CommandSkip);
+           
+            if (ActivePlayerDone)
+            {
+                ActivePlayerId = null;
+            }
         }
 
-        public Lapp GetNextLapp()
+        public Lapp GetNextLapp(int playerId)
         {
+            if (ActivePlayerId != playerId)
+            {
+                return null;
+            }
+
             var unclaimed = _lapps.Where(l => l.ClaimedInPhase == null || l.ClaimedInPhase < Phase).ToList();
 
             if (!unclaimed.Any())
@@ -107,16 +149,22 @@ namespace Lappleken.Web.Data.Model
             return unclaimed.Skip(new Random().Next(count)).Take(1).First();
         }
 
-        private void MoveToNextPhase()
-        {
-            Phase++;
-            ActivePlayerId = null;
-            PlayerStartedAt = null;
-        }
-
         public void BowlToPlayer(int playerId)
         {
+            // Kolla att det är rätt team
+                var playerTeamId = GetPlayerTeamId(playerId);
+                if (!ActiveTeamId.HasValue)
+                {
+                    ActiveTeamId = playerTeamId;
+                }
+                else if (playerTeamId != ActiveTeamId)
+                {
+                    throw new SystemException("Spelare i fel lag försökte ta skålen");
+                }
+            
+
             ActivePlayerId = playerId;
+            ActivePlayerDone = false;
         }
 
         public void PlayerStarted(int playerId)
@@ -128,25 +176,11 @@ namespace Lappleken.Web.Data.Model
 
             if (Phase == PhaseEnum.NotStarted)
             {
-                Phase++;
+                StartGame();
             }
 
-            PlayerStartedAt = DateTime.Now;
+            SetPlayerEndTime();
         }
-
-        public enum PhaseEnum
-        {
-            NotStarted = 0,
-            ManyWords = 1,
-            OnlyOneWord = 2,
-            Charades = 3,
-            Humming = 4,
-            Ended = 5
-        }
-
-        public const string CommandClaim = "claim";
-        public const string CommandSkip = "skip";
-        public const string CommandFirst = "first";
 
         public void RemovePlayerFromTeam(int playerId, int teamId)
         {
@@ -154,14 +188,68 @@ namespace Lappleken.Web.Data.Model
 
             team.RemovePlayer(playerId);
         }
-    }
 
-    public class GameStatus
-    {
-        public int GameId { get; set; }
-        public string Phase { get; set; }
-        public int? ActivePlayerId { get; set; }
+        private void SetPlayerEndTime()
+        {
+            //PlayerEndsAt = DateTime.Now.AddMinutes(1);
+            PlayerEndsAt = DateTime.Now.AddSeconds(10);
+        }
 
-        public int? RemainingTimeForPlayer { get; set; }
+        private void CheckIfTimeIsUp()
+        {
+            if (RemainingSecondsForActivePlayer == 0 && !ActivePlayerDone)
+            {
+                ActivePlayerDone = true;
+                SetNextTeamActive();
+            }
+        }
+
+        private void MoveToNextPhase()
+        {
+            Phase++;
+            ActivePlayerRemainingTime = RemainingSecondsForActivePlayer;
+        }
+
+        private void StartGame()
+        {
+            Phase = PhaseEnum.ManyWords;
+        }
+
+        private void SetNextTeamActive()
+        {
+            var teamIds = _teams.Select(t => t.TeamID).OrderBy(t => t).ToArray();
+
+            var i = Array.IndexOf(teamIds, ActiveTeamId);
+
+            if (i == teamIds.Length-1)
+            {
+                ActiveTeamId = teamIds[0];
+            }
+            else
+            {
+                ActiveTeamId = teamIds[i + 1];
+            }
+        }
+
+        private int? RemainingSecondsForActivePlayer
+        {
+            get
+            {
+                var remainingTimeForPlayer = PlayerEndsAt - DateTime.Now;
+
+                if (remainingTimeForPlayer.HasValue && remainingTimeForPlayer.Value < TimeSpan.Zero)
+                {
+                    remainingTimeForPlayer = TimeSpan.Zero;
+                }
+
+                return remainingTimeForPlayer?.Seconds;
+            }
+        }
+
+        private int GetPlayerTeamId(int playerId)
+        {
+            var players = _teams.SelectMany(t => t.Players).ToList();
+            return players.Single(p => p.PlayerID == playerId).TeamID.Value;
+        }
     }
 }

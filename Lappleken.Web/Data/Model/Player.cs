@@ -12,12 +12,13 @@ namespace Lappleken.Web.Data.Model
         public string UserId { get; private set; }
 
         private List<Lapp> _createdLapps;
+        public int? TeamID { get; private set; }
         public IReadOnlyCollection<Lapp> CreatedLapps => _createdLapps.AsReadOnly();
 
         public bool IsReady => _createdLapps.Count == 8;
         public bool IsActive { get; set; } = true;
 
-        protected Player(){}
+        protected Player() { }
 
         public Player(string userId, string name)
         {
