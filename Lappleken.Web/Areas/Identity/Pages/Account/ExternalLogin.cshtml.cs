@@ -104,7 +104,7 @@ namespace Lappleken.Web.Areas.Identity.Pages.Account
                         Email = info.Principal.FindFirstValue(ClaimTypes.Email)
                     };
                 }
-                var user = new IdentityUser { UserName = Input.Email, Email = Input.Email };
+                var user = new IdentityUser { UserName = info.LoginProvider + "." + info.ProviderKey, Email = Input.Email, EmailConfirmed = true};
                 var identityResult = await _userManager.CreateAsync(user);
                 if (identityResult.Succeeded)
                 {
@@ -112,14 +112,20 @@ namespace Lappleken.Web.Areas.Identity.Pages.Account
                     if (identityResult.Succeeded)
                     {
                         _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
-                        if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Name))
+                        foreach (var principalClaim in info.Principal.Claims)
                         {
-                            var claim = info.Principal.FindFirst(ClaimTypes.Name);
-                            var c = new Claim(ClaimTypes.GivenName, claim.Value);
-
                             await _userManager.AddClaimAsync(user,
-                                c);
+                                principalClaim);
+
                         }
+                        //if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Name))
+                        //{
+                        //    var claim = info.Principal.FindFirst(ClaimTypes.Name);
+                        //    var c = new Claim(ClaimTypes.GivenName, claim.Value);
+
+                        //    await _userManager.AddClaimAsync(user,
+                        //        c);
+                        //}
 
                         await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
 

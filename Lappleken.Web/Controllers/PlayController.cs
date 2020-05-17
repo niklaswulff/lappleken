@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Lappleken.Web.Data;
+using Lappleken.Web.Data.Model;
 using Lappleken.Web.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -38,7 +39,7 @@ namespace Lappleken.Web.Controllers
         {
             var gameCookie = Request.GetGameCookie(UserId);
 
-            if (!gameCookie?.IsInGame == true)
+            if (gameCookie?.IsInGame != true)
             {
                 throw new SystemException("Fel i gameCookie");
             }
@@ -52,7 +53,7 @@ namespace Lappleken.Web.Controllers
                 ? _dbContext.Teams.Single(t => t.TeamID == status.ActiveTeamId.Value).Name
                 : null;
 
-            return new JsonResult(new {status.Phase, activeTeamName, activePlayerName, status.ActivePlayerDone, status.RemainingTimeForPlayer});
+            return new JsonResult(new {status.GameState, status.Phase, activeTeamName, activePlayerName, status.ActivePlayerDone, status.RemainingTimeForPlayer });
         }
 
         [HttpPost]
@@ -63,40 +64,46 @@ namespace Lappleken.Web.Controllers
 
             if (!gameCookie?.IsInGame == true)
             {
-                throw new SystemException("Fel i gameCookie");
+                return new JsonResult(new { error = "Du är inte med i ett aktivt spel" });
             }
 
-            var game = _dbContext.Games.Include(g => g.Teams).ThenInclude(t => t.Players).Include(g => g.Lapps)
-                .Single(g => g.GameID == gameCookie.GameId);
-
-            switch (lappCommand.Command)
+            try
             {
-                case "claim":
-                    game.ClaimLapp(gameCookie.PlayerId.Value, lappCommand.LappId);
-                    break;
-                case "skip":
-                    game.SkipLapp(gameCookie.PlayerId.Value, lappCommand.LappId);
-                    break;
-                case "first":
-                    game.PlayerStarted(gameCookie.PlayerId.Value);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("command");
+                var game = _dbContext.Games.Include(g => g.Teams).ThenInclude(t => t.Players).Include(g => g.Lapps)
+                    .Single(g => g.GameID == gameCookie.GameId);
+
+                switch (lappCommand.Command)
+                {
+                    case Game.CommandClaim:
+                        game.ClaimLapp(gameCookie.PlayerId.Value, lappCommand.LappId);
+                        break;
+                    case Game.CommandSkip:
+                        game.SkipLapp(gameCookie.PlayerId.Value, lappCommand.LappId);
+                        break;
+                    case Game.CommandFirst:
+                        game.PlayerStarted(gameCookie.PlayerId.Value);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(lappCommand.Command));
+                }
+
+                var selected = game.GetNextLapp(gameCookie.PlayerId.Value);
+
+                _dbContext.SaveChanges();
+
+                if (selected == null)
+                {
+                    return new JsonResult(new {message = "Din tur är över"});
+                }
+
+                return new JsonResult(new {lappId = selected.LappID, lappContent = selected.Text});
             }
-
-            var selected = game.GetNextLapp(gameCookie.PlayerId.Value);
-
-            _dbContext.SaveChanges();
-
-            if (selected == null)
+            catch (Exception exception)
             {
-                return new JsonResult(new{});
+                return new JsonResult(new {message = exception.Message});
             }
+        }
 
-            return new JsonResult(new {lappId = selected.LappID, lappContent = selected.Text});
-
-        } 
-        
         [HttpPost]
         [Route("TakeBowl")]
         public ActionResult TakeBowl()
@@ -124,6 +131,6 @@ namespace Lappleken.Web.Controllers
                 return new NotFoundResult();
             }
         }
-        
+
     }
 }

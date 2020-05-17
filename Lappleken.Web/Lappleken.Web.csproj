@@ -39,6 +39,8 @@
     <Compile Remove="Data\Migrations\20200511221616_Player_IsActive.Designer.cs" />
     <Compile Remove="Data\Migrations\20200511221832_Player_IsActive.cs" />
     <Compile Remove="Data\Migrations\20200511221832_Player_IsActive.Designer.cs" />
+    <Compile Remove="Data\Migrations\20200517210139_gg.cs" />
+    <Compile Remove="Data\Migrations\20200517210139_gg.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

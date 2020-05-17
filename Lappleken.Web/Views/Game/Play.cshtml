@@ -1,49 +1,89 @@
 ﻿@model Lappleken.Web.Models.Game.GamePlayViewModel
 
+<div class="development-debug">
+    <div id="game-state"></div>
+</div>
+
 <div id="status-bar" class="row">
-    <div class="col-xs-4">Fas: <span id="game-phase">@Model.Phase</span></div>
-    <div class="col-xs-4">Spelare: @Model.PlayerName</div>
-    <div class="col-xs-4">
-        Lag @Model.TeamName   
+    <div class="col">Fas: <span id="game-phase">@Model.Phase</span></div>
+    <div class="col">Spelare: @Model.PlayerName</div>
+    <div class="col">
+        Lag @Model.TeamName
         @Html.ActionLink("Lämna detta spel", "LeaveGame", "Game")
     </div>
 </div>
 
+<div id="message" class="alert-danger">
+    <p></p>
+</div>
+
+<div id="game-not-started" class="row">
+    <div class="col">
+        Väntar på att den första spelaren tar skålen
+    </div>
+</div>
+
 <div id="game-status" class="row">
-    <div class="col-xs-12">
+    <div class="col">
         Lag <span id="active-team"></span> spelar, <span id="active-player"></span> har skålen i <span id="remaining-time"></span> s till
     </div>
 </div>
 
 <div id="game-idle" class="row">
-    <div class="col-xs-12">
+    <div class="col">
         Väntar på att spelare i lag <span id="active-team"></span> ska ta skålen
     </div>
 </div>
 
-<div id="play-game" class="action-menu row">
-    <div class="col-xs-12 center">
-        <button id="take-bowl">Ta skålen</button>
+<div id="game-ended" class="row">
+    <div class="col">
+        Spelet är slut
     </div>
 </div>
-<div id="lapp" class="lapp row" data-lapp-id="">
-    <div class="col-xs-12 center">
-        <button id="get-first-lapp">Ta första</button>
-        <span id="lapp-content">-</span>
+
+<div id="play-game">
+    <div class="row">
+        <div class="col">
+            <button id="take-bowl">Ta skålen</button>
+            <button id="get-first-lapp">Ta första</button>
+        </div>
+    </div>
+    <div class="row">
+
+        <div id="lapp" class="lapp col" data-lapp-id="">
+            <span id="lapp-content">-</span>
+        </div>
+    </div>
+    <div class="row">
+        <div id="lapp-outcome" class="lapp col">
+            <button id="skip-lapp">Lägg tillbaka</button>
+            <button id="claim-lapp">Tagen</button>
+        </div>
     </div>
 </div>
-<div class="lapp-outcome">
-    <button id="skip-lapp">Lägg tillbaka</button>
-    <button id="claim-lapp">Tagen</button>
-</div>
+
 <script type="text/javascript">
     $(function () {
+
+        var updateHandler;
+
+        function SetMessage(message) {
+            $('#message p').text(message);
+
+        }
+
         function handleEvent(command) {
-            var lappId = $('#lapp').data('lapp-id');
+
+            var lapp = $('#lapp');
+
+            var lappId = lapp.data('lapp-id');
 
             if (command == 'first') {
                 lappId = 0;
             }
+
+            lapp.data('lapp-id', 0);
+            lapp.find('#lapp-content').text('');
 
             $.post('/api/Play/Lapp/',
                 {
@@ -51,7 +91,7 @@
                     LappId: lappId
                 }
             ).fail(function (msg) {
-                alert('error ' + msg);
+                SetMessage('error ' + msg);
             }).done(function (response) {
                 handleResponse(response);
             });
@@ -59,8 +99,13 @@
 
         function handleResponse(response) {
 
-            if ($.isEmptyObject(response)) {
-                alert('inga lappar kvar');
+            if (response.error) {
+                SetMessage(response.error);
+                window.href.location = '/';
+            }
+
+            if (response.message) {
+                SetMessage(response.message);
                 return;
             }
 
@@ -73,14 +118,16 @@
 
         $('#get-first-lapp').click(function () {
             handleEvent('first');
+            // Dölj Första, visa Skip och Claim
         });
 
         $('#take-bowl').click(function () {
             $.post('/api/Play/TakeBowl/'
             ).fail(function (msg) {
-                alert('error ' + msg);
+                SetMessage('error ' + msg);
             }).done(function (response) {
-               
+                // aktivera "Ta första"
+                // dölj skip och claim
             });
 
         });
@@ -97,41 +144,100 @@
         $('#leave-game').click(function () {
             $.post('/api/Play/LeaveGame/'
             ).fail(function (msg) {
-                alert('error ' + msg);
+                SetMessage('error ' + msg);
             }).done(function (response) {
-                
+                window.href.location = '/';
             });
         });
-        
+
         function setStatus(status) {
 
             $('#game-phase').text(status.phase);
-            $('#active-team').text("Lagnamn");
+            $('#active-team').text(status.activeTeamName);
+            $('#game-state').text(status.gameState);
 
-            if (status.activePlayerName) {
-                $('#game-status').show();
+            $('#game-not-started').hide();
+            $('#game-ended').hide();
+
+            switch (status.gameState) {
+                case 'WaitingForGameToStart':
+                    $('#game-not-started').show();
+                    $('#game-status').hide();
+                    $('#game-idle').hide();
+                    // Visa Ta skålen
+                    // Visa alla lag och spelare för att verifiera att alla är med
+                    break;
+                case 'WaitingForPlayerToStart':
+                    // Visa vem som spelar
+                    $('#active-player').text(status.activePlayerName);
+                // Rensa återstående tid
+                case 'PlayerIsActive':
+                    $('#game-status').show();
+                    $('#game-idle').hide();
+
+                    // Visa vem som spelar och återstående tid
+                    $('#active-player').text(status.activePlayerName);
+                    $('#remaining-time').text(status.remainingTimeForPlayer);
+                    // Visa aktuell spelares antal tagna lappar
+
+                    break;
+                case 'WaitingForPlayerToTakeBowl':
+                    $('#game-status').hide();
+                    $('#game-idle').show();
+
+                    break;
+
+                case 'WaitingForPhaseToStart':
+                    $('#game-status').hide();
+                    $('#game-idle').show();
+                    // Visa poängställning
+                    break;
+                case 'GameIsEnded':
+                    $('#game-status').hide();
+                    $('#game-idle').hide();
+                    $('#game-ended').show();
+                    // Visa poängställning
+                    // Visa kuriosa-statistik
+                    if (updateHandler) {
+                        window.clearInterval(updateHandler);
+                    }
+                    break;
+                default:
+            }
+
+            if (status.gameStarted == 'false') {
+                $('#game-not-started').show();
+                $('#game-status').hide();
                 $('#game-idle').hide();
-
-                $('#active-player').text(status.activePlayerName);
-                $('#remaining-time').text(status.remainingTimeForPlayer);
             }
             else {
-                $('#game-status').hide();
-                $('#game-idle').show();
+                $('#game-not-started').hide();
+
+                if (status.activePlayerName) {
+                    $('#game-status').show();
+                    $('#game-idle').hide();
+
+                    $('#active-player').text(status.activePlayerName);
+                    $('#remaining-time').text(status.remainingTimeForPlayer);
+                }
+                else {
+                    $('#game-status').hide();
+                    $('#game-idle').show();
+                }
             }
         }
 
         function updateStatus() {
             $.get('/api/Play/GameStatus/')
                 .fail(function (msg) {
-                    alert('error ' + msg);
+                    SetMessage('error ' + msg);
                 }).done(function (response) {
                     setStatus(response);
                 });
         }
 
         updateStatus();
-        window.setInterval(updateStatus, 1000);
+        updateHandler = window.setInterval(updateStatus, 1000);
     }
     );
 </script>

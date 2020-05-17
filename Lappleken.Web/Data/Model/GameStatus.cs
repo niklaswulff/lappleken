@@ -9,5 +9,6 @@
         public int? RemainingTimeForPlayer { get; set; }
         public int? ActiveTeamId { get; set; }
         public bool ActivePlayerDone { get; set; }
+        public string GameState { get; set; }
     }
 }

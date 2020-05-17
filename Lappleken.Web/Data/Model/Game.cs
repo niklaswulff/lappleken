@@ -19,6 +19,16 @@ namespace Lappleken.Web.Data.Model
             Ended = 5
         }
 
+        public enum GameState
+        {
+            WaitingForGameToStart,
+            WaitingForPlayerToStart,
+            PlayerIsActive,
+            WaitingForPlayerToTakeBowl,
+            WaitingForPhaseToStart,
+            GameIsEnded
+        }
+
         public const string CommandClaim = "claim";
         public const string CommandSkip = "skip";
         public const string CommandFirst = "first";
@@ -31,10 +41,10 @@ namespace Lappleken.Web.Data.Model
         public IReadOnlyCollection<Team> Teams => _teams?.ToList();
         public IReadOnlyCollection<Lapp> Lapps => _lapps?.ToList();
 
-        public bool Created { get; private set; }
         public string CreatedBy { get; private set; }
 
         public PhaseEnum Phase { get; private set; }
+        public bool PhaseStarted { get; private set; }
         public DateTime? PlayerEndsAt { get; private set; }
 
         public int? ActiveTeamId { get; private set; }
@@ -55,7 +65,6 @@ namespace Lappleken.Web.Data.Model
             _lapps = new List<Lapp>();
 
             Date = DateTime.Now;
-            Created = true;
             CreatedBy = createdByUserId;
         }
 
@@ -63,6 +72,7 @@ namespace Lappleken.Web.Data.Model
         {
             return new GameStatus
             {
+                GameState = State.ToString(),
                 GameId = GameID,
                 Phase = Phase.ToString(),
                 ActiveTeamId = ActiveTeamId,
@@ -72,10 +82,38 @@ namespace Lappleken.Web.Data.Model
             };
         }
 
+        public GameState State
+        {
+            get
+            {
+                if (ActivePlayerId.HasValue)
+                {
+                    return PlayerEndsAt.HasValue ? GameState.PlayerIsActive : GameState.WaitingForPlayerToStart;
+                }
+
+                if (Phase == PhaseEnum.NotStarted)
+                {
+                    return GameState.WaitingForGameToStart;
+                }
+
+                if (Phase == PhaseEnum.Ended)
+                {
+                    return GameState.GameIsEnded;
+                }
+
+                if (PhaseStarted)
+                {
+                    return GameState.WaitingForPlayerToTakeBowl;
+                }
+
+                return GameState.WaitingForPhaseToStart;
+            }
+        }
+
         public Team AddTeam(string name)
         {
             var team = new Team(name);
-            this._teams.Add(team);
+            _teams.Add(team);
 
             return team;
         }
@@ -99,6 +137,11 @@ namespace Lappleken.Web.Data.Model
                 throw new SystemException("Fel spelare tar lapp");
             }
 
+            if (lappId == 0)
+            {
+                throw new SystemException("Ingen lapp att ta");
+            }
+
             var player = _teams.SelectMany(t => t.Players).Single(p => p.PlayerID == playerId);
 
             this.Lapps.Single(l => l.LappID == lappId).AddLogg(this.Phase, player, CommandClaim);
@@ -118,10 +161,16 @@ namespace Lappleken.Web.Data.Model
                 throw new SystemException("Fel spelare skippar lapp");
             }
 
+            if (lappId == 0)
+            {
+                throw new SystemException("Ingen lapp att lägga tillbaka");
+            }
+
+
             var player = _teams.SelectMany(t => t.Players).Single(p => p.PlayerID == playerId);
 
             this.Lapps.Single(l => l.LappID == lappId).AddLogg(this.Phase, player, CommandSkip);
-           
+
             if (ActivePlayerDone)
             {
                 ActivePlayerId = null;
@@ -152,19 +201,19 @@ namespace Lappleken.Web.Data.Model
         public void BowlToPlayer(int playerId)
         {
             // Kolla att det är rätt team
-                var playerTeamId = GetPlayerTeamId(playerId);
-                if (!ActiveTeamId.HasValue)
-                {
-                    ActiveTeamId = playerTeamId;
-                }
-                else if (playerTeamId != ActiveTeamId)
-                {
-                    throw new SystemException("Spelare i fel lag försökte ta skålen");
-                }
-            
+            var playerTeamId = GetPlayerTeamId(playerId);
+            if (!ActiveTeamId.HasValue)
+            {
+                ActiveTeamId = playerTeamId;
+            }
+            else if (playerTeamId != ActiveTeamId)
+            {
+                throw new SystemException("Spelare i fel lag försökte ta skålen");
+            }
 
             ActivePlayerId = playerId;
             ActivePlayerDone = false;
+            PlayerEndsAt = null;
         }
 
         public void PlayerStarted(int playerId)
@@ -178,6 +227,8 @@ namespace Lappleken.Web.Data.Model
             {
                 StartGame();
             }
+
+            PhaseStarted = true;
 
             SetPlayerEndTime();
         }
@@ -207,6 +258,7 @@ namespace Lappleken.Web.Data.Model
         private void MoveToNextPhase()
         {
             Phase++;
+            PhaseStarted = false;
             ActivePlayerRemainingTime = RemainingSecondsForActivePlayer;
         }
 
@@ -221,7 +273,7 @@ namespace Lappleken.Web.Data.Model
 
             var i = Array.IndexOf(teamIds, ActiveTeamId);
 
-            if (i == teamIds.Length-1)
+            if (i == teamIds.Length - 1)
             {
                 ActiveTeamId = teamIds[0];
             }
